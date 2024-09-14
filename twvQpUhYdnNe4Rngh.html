@@ -1,0 +1,938 @@
+<html><head><base href="https://agar.io/">
+<title>Advanced Agar.io Clone with Improved AI</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #0066cc; /* Deeper blue background */
+    font-family: Arial, sans-serif;
+  }
+  #gameCanvas {
+    display: block;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M0 0 Q 50 50 100 0 Q 50 50 0 100 Q 50 50 100 100" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/></svg>');
+    background-size: 100px 100px;
+  }
+  #playerInfo {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 18px;
+    color: #333;
+    background-color: rgba(255, 255, 255, 0.5);
+    padding: 5px;
+    border-radius: 5px;
+  }
+  #leaderboard {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 10px;
+    border-radius: 5px;
+  }
+  #leaderboard h3 {
+    margin-top: 0;
+    margin-bottom: 5px;
+  }
+  #leaderboard ol {
+    padding-left: 25px;
+    margin-bottom: 0;
+  }
+  #gameOverScreen {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    display: none;
+  }
+  #playAgainButton {
+    margin-top: 10px;
+    padding: 10px 20px;
+    font-size: 18px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  #playAgainButton:hover {
+    background-color: #45a049;
+  }
+  #menuScreen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 102, 204, 0.8);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  #menuScreen h1 {
+    font-size: 72px;
+    color: #0066cc; /* Change to blue */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    margin-bottom: 20px;
+    animation: wave 3s ease-in-out infinite;
+  }
+  #menuScreen h1 span {
+    display: inline-block;
+    animation: wave 3s ease-in-out infinite;
+    animation-delay: calc(0.1s * var(--i));
+  }
+  @keyframes wave {
+    0%, 100% { transform: translateY(0); }
+    25% { transform: translateY(-5px); }
+    75% { transform: translateY(5px); }
+  }
+  #menuPlayerNameInput {
+    font-size: 18px;
+    padding: 10px;
+    margin-bottom: 20px;
+    width: 250px;
+  }
+  #nameConfirmButton {
+    font-size: 16px;
+    padding: 5px 10px;
+    margin-left: 10px;
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  #nameConfirmButton:hover {
+    background-color: #1E88E5;
+  }
+  #patternOptions {
+    margin: 20px 0;
+  }
+  #patternOptions h3 {
+    color: white;
+    margin-bottom: 10px;
+  }
+  .patternButton {
+    font-size: 16px;
+    padding: 5px 10px;
+    margin: 0 5px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .patternButton:hover {
+    background-color: #45a049;
+  }
+  .patternButton.selected {
+    background-color: #2E7D32;
+    font-weight: bold;
+  }
+  #startGameButton {
+    font-size: 24px;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  #startGameButton:hover {
+    background-color: #45a049;
+  }
+  .menu-fish {
+    position: absolute;
+    font-size: 48px;
+    opacity: 0.5;
+    animation: swim 20s linear infinite;
+  }
+  @keyframes swim {
+    0% { transform: translate(-100%, -100%); }
+    100% { transform: translate(100%, 100%); }
+  }
+  #emojiOptions {
+    display: none;
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 10px;
+    border-radius: 5px;
+  }
+  #soundInfo {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 5px;
+    border-radius: 5px;
+  }
+</style>
+</head>
+<body>
+<div id="menuScreen">
+  <h1>
+    <span style="--i:1">f</span>
+    <span style="--i:2">i</span>
+    <span style="--i:3">s</span>
+    <span style="--i:4">h</span>
+    <span style="--i:5">.</span>
+    <span style="--i:6">i</span>
+    <span style="--i:7">o</span>
+  </h1>
+  <input type="text" id="menuPlayerNameInput" placeholder="Enter your name" maxlength="20">
+  <button id="nameConfirmButton">Name Done</button>
+  <div id="patternOptions">
+    <h3>Choose a pattern:</h3>
+    <button class="patternButton" data-pattern="solid">Solid</button>
+    <button class="patternButton" data-pattern="stripes">Stripes</button>
+    <button class="patternButton" data-pattern="dots">Dots</button>
+    <button class="patternButton" data-pattern="scales">Scales</button>
+  </div>
+  <button id="startGameButton">Start Game</button>
+</div>
+<canvas id="gameCanvas" style="display: none;"></canvas>
+<div id="playerInfo">Mass: <span id="mass">20</span></div>
+<div id="leaderboard">
+  <h3>Leaderboard</h3>
+  <ol id="leaderboardList"></ol>
+</div>
+<div id="gameOverScreen">
+  <h2>Game Over</h2>
+  <p>Your final score: <span id="finalScore"></span></p>
+  <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20">
+  <button id="playAgainButton">Play Again</button>
+</div>
+<div id="emojiOptions"></div>
+<div id="soundInfo">
+  <p>Sound Controls: '+' to increase volume, '-' to decrease volume</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
+<script>
+let audioContext;
+let masterGainNode;
+let gameStarted = false;
+
+const MAP_SIZE = 5000;
+const CELL_SPEED = 3;
+const INITIAL_MASS = 20;
+const SPEED_POWERUP_COUNT = 10;
+const SIZE_POWERUP_COUNT = 0;
+const SPEED_BOOST_FACTOR = 1.5;
+const SIZE_BOOST_FACTOR = 3;
+const SPEED_BOOST_DURATION = 5000;
+const SIZE_BOOST_DURATION = 10000;
+const SIZE_POWERUP_SPAWN_INTERVAL = 60000;
+const NAME_PREFIXES = [
+  "Nemo", "Bubbles", "Finley", "Gills", "Scales", 
+  "Coral", "Splash", "Finn", "Wave", "Aqua",
+  "Kelp", "Neptune", "Pearl", "Sandy", "Shell",
+  "Tide", "Flipper", "Sunny", "Misty", "Salty"
+];
+const NAME_SUFFIXES = [
+  "Trout", "Bass", "Salmon", "Tuna", "Cod", 
+  "Shark", "Carp", "Perch", "Marlin", "Herring",
+  "Anchovy", "Flounder", "Grouper", "Minnow", "Snapper",
+  "Tilapia", "Guppy", "Betta", "Tetra", "Barracuda"
+];
+const FISH_EMOJIS = ['🐠', '🐟', '🐡', '🦈', '🐬', '🐳', '🐋', '🦑', '🐙'];
+let cells = [];
+let food = [];
+let speedPowerups = [];
+let sizePowerups = [];
+let zoom = 1;
+let leaderboard = [];
+let gameOver = false;
+let cameraTarget;
+let playerCell;
+let zoomLevel = 1;
+let showingEmoji = false;
+let emojiDisplayTime = 0;
+let selectedEmoji = '';
+let selectedPattern = 'solid';
+let confirmedName = '';
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  initGame();
+  
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  masterGainNode = audioContext.createGain();
+  masterGainNode.connect(audioContext.destination);
+  masterGainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+
+  addMenuFish();
+  document.getElementById('gameCanvas').style.display = 'none';
+}
+
+function playBubbleSound(frequency, volume, type = 'bubble') {
+  if (!audioContext) return;
+  
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.type = 'sine';
+  oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+  
+  gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+  gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
+  
+  if (type === 'eat') {
+    oscillator.frequency.exponentialRampToValueAtTime(frequency / 2, audioContext.currentTime + 0.1);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+  } else {
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+  }
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(masterGainNode);
+  
+  oscillator.start();
+  oscillator.stop(audioContext.currentTime + (type === 'eat' ? 0.3 : 0.1));
+}
+
+function playDyingSound() {
+  if (!audioContext) return;
+  
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.type = 'sine';
+  oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.5);
+  
+  gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(masterGainNode);
+  
+  oscillator.start();
+  oscillator.stop(audioContext.currentTime + 0.5);
+}
+
+function initGame() {
+  cells = [];
+  food = [];
+  speedPowerups = [];
+  sizePowerups = [];
+  leaderboard = [];
+  gameOver = false;
+
+  playerCell = new Cell(random(MAP_SIZE), random(MAP_SIZE), INITIAL_MASS, confirmedName || "Player", true, selectedPattern);
+  cells.push(playerCell);
+  cameraTarget = playerCell;
+
+  for (let i = 0; i < 20; i++) {
+    let aiCell = new Cell(random(MAP_SIZE), random(MAP_SIZE), INITIAL_MASS, Cell.getUniqueName(), false, selectedPattern);
+    cells.push(aiCell);
+  }
+
+  for (let i = 0; i < 500; i++) {
+    food.push(new Food(random(MAP_SIZE), random(MAP_SIZE)));
+  }
+
+  createSpeedPowerups();
+
+  setInterval(() => {
+    if (sizePowerups.length < SIZE_POWERUP_COUNT) {
+      sizePowerups.push(new SizePowerup(random(MAP_SIZE), random(MAP_SIZE)));
+    }
+  }, SIZE_POWERUP_SPAWN_INTERVAL);
+}
+
+function createSpeedPowerups() {
+  for (let i = 0; i < SPEED_POWERUP_COUNT; i++) {
+    speedPowerups.push(new SpeedPowerup(random(MAP_SIZE), random(MAP_SIZE)));
+  }
+}
+
+function spawnPlayer() {
+  playerCell = new Cell(random(MAP_SIZE), random(MAP_SIZE), INITIAL_MASS, confirmedName || "Player", true, selectedPattern);
+  cells.push(playerCell);
+  cameraTarget = playerCell;
+}
+
+function addMenuFish() {
+  const menuScreen = document.getElementById('menuScreen');
+  for (let i = 0; i < 10; i++) {
+    const fish = document.createElement('div');
+    fish.className = 'menu-fish';
+    fish.textContent = FISH_EMOJIS[Math.floor(Math.random() * FISH_EMOJIS.length)];
+    fish.style.left = `${Math.random() * 100}%`;
+    fish.style.top = `${Math.random() * 100}%`;
+    fish.style.animationDelay = `${Math.random() * 20}s`;
+    menuScreen.appendChild(fish);
+  }
+}
+
+function draw() {
+  if (!gameStarted) return;
+
+  background(0, 102, 204);
+  drawCoral();
+
+  translate(width / 2, height / 2);
+  let newzoom = 64 / (cameraTarget.r * zoomLevel);
+  zoom = lerp(zoom, newzoom, 0.1);
+  scale(zoom);
+  translate(-cameraTarget.pos.x, -cameraTarget.pos.y);
+
+  stroke(200);
+  strokeWeight(10);
+  noFill();
+  rect(0, 0, MAP_SIZE, MAP_SIZE);
+
+  if (random() < 0.2) {
+    food.push(new Food(random(MAP_SIZE), random(MAP_SIZE)));
+  }
+
+  for (let i = food.length - 1; i >= 0; i--) {
+    food[i].show();
+  }
+
+  for (let i = cells.length - 1; i >= 0; i--) {
+    cells[i].update();
+    cells[i].show();
+    
+    for (let j = food.length - 1; j >= 0; j--) {
+      if (cells[i].eats(food[j])) {
+        food.splice(j, 1);
+      }
+    }
+
+    for (let j = cells.length - 1; j >= 0; j--) {
+      if (i !== j && cells[i].eats(cells[j])) {
+        cells[i].mass += cells[j].mass;
+        if (cells[j].isPlayer) {
+          gameOver = true;
+          document.getElementById('gameOverScreen').style.display = 'block';
+          document.getElementById('finalScore').textContent = floor(cells[j].mass);
+          cameraTarget = cells[i];
+          playDyingSound();
+          cells.splice(j, 1);
+        } else {
+          respawnCell(j);
+        }
+        if (j < i) i--;
+      }
+    }
+  }
+
+  for (let powerup of speedPowerups) {
+    powerup.show();
+  }
+
+  for (let i = speedPowerups.length - 1; i >= 0; i--) {
+    for (let cell of cells) {
+      if (cell.eats(speedPowerups[i])) {
+        cell.activateSpeedBoost();
+        speedPowerups.splice(i, 1);
+        setTimeout(() => {
+          speedPowerups.push(new SpeedPowerup(random(MAP_SIZE), random(MAP_SIZE)));
+        }, 10000);
+        break;
+      }
+    }
+  }
+
+  for (let powerup of sizePowerups) {
+    powerup.show();
+  }
+
+  for (let i = sizePowerups.length - 1; i >= 0; i--) {
+    for (let cell of cells) {
+      if (cell.eats(sizePowerups[i])) {
+        cell.activateSizeBoost();
+        sizePowerups.splice(i, 1);
+        break;
+      }
+    }
+  }
+
+  updateLeaderboard();
+  document.getElementById('mass').textContent = gameOver ? 0 : floor(playerCell.mass);
+
+  if (showingEmoji && millis() > emojiDisplayTime) {
+    showingEmoji = false;
+  }
+
+  for (let i = 0; i < 5; i++) {
+    let x = random(width);
+    let y = random(height);
+    let size = random(5, 15);
+    fill(255, 255, 255, 100);
+    noStroke();
+    ellipse(x, y, size);
+  }
+}
+
+function drawCoral() {
+  push();
+  noStroke();
+  for (let i = 0; i < 50; i++) {
+    let x = random(MAP_SIZE);
+    let y = random(MAP_SIZE);
+    let size = random(50, 150);
+    let hue = (frameCount + i * 30) % 360;
+    fill(hue, 100, 80);
+    beginShape();
+    for (let a = 0; a < TWO_PI; a += 0.1) {
+      let r = size * 0.5 + sin(a * 8) * size * 0.2;
+      let px = x + cos(a) * r;
+      let py = y + sin(a) * r;
+      curveVertex(px, py);
+    }
+    endShape(CLOSE);
+  }
+  pop();
+}
+
+function respawnCell(index) {
+  let oldCell = cells[index];
+  let newCell = new Cell(random(MAP_SIZE), random(MAP_SIZE), INITIAL_MASS, Cell.getUniqueName(), false, selectedPattern);
+  cells[index] = newCell;
+}
+
+class Cell {
+  constructor(x, y, mass, name, isPlayer, pattern = 'solid') {
+    this.pos = createVector(x, y);
+    this.mass = mass;
+    this.r = sqrt(this.mass / PI) * 10;
+    this.vel = createVector(0, 0);
+    this.name = name;
+    this.isPlayer = isPlayer;
+    this.color = color(random(0, 50), random(100, 200), random(200, 255));
+    this.targetPos = null;
+    this.lastTargetTime = 0;
+    this.currentTarget = null;
+    this.state = 'wander';
+    this.stateChangeTime = 0;
+    this.fleeTarget = null;
+    this.speedBoostEndTime = 0;
+    this.sizeBoostEndTime = 0;
+    this.pattern = pattern;
+  }
+
+  static getUniqueName() {
+    let prefix = random(NAME_PREFIXES);
+    let suffix = random(NAME_SUFFIXES);
+    let name = prefix + " " + suffix;
+    if (cells.some(c => c.name === name)) {
+      name += " " + floor(random(1000));
+    }
+    return name;
+  }
+
+  update() {
+    if (this.isPlayer && !gameOver) {
+      this.movePlayer();
+    } else {
+      this.think();
+      this.move();
+    }
+    this.pos.add(this.vel);
+    this.pos.x = constrain(this.pos.x, this.r, MAP_SIZE - this.r);
+    this.pos.y = constrain(this.pos.y, this.r, MAP_SIZE - this.r);
+    this.r = sqrt(this.mass / PI) * 10;
+
+    if (millis() < this.speedBoostEndTime) {
+      this.vel.mult(SPEED_BOOST_FACTOR);
+    }
+
+    if (millis() > this.sizeBoostEndTime && this.sizeBoostEndTime !== 0) {
+      this.mass /= SIZE_BOOST_FACTOR;
+      this.sizeBoostEndTime = 0;
+    }
+  }
+
+  think() {
+    let currentTime = millis();
+    if (currentTime - this.stateChangeTime > 10000) {
+      this.state = random() < 0.7 ? 'hunt' : 'wander';
+      this.stateChangeTime = currentTime;
+    }
+
+    if (currentTime - this.lastTargetTime < 5000 && this.currentTarget) {
+      if (cells.includes(this.currentTarget) || food.includes(this.currentTarget)) {
+        this.targetPos = this.currentTarget.pos;
+        return;
+      }
+    }
+
+    this.lastTargetTime = currentTime;
+    
+    let nearestFood = null;
+    let minDistanceFood = Infinity;
+    let nearestSmallerCell = null;
+    let minDistanceSmallerCell = Infinity;
+    let nearestBiggerCell = null;
+    let minDistanceBiggerCell = Infinity;
+    const detectionRange = width / zoom;
+
+    for (let f of food) {
+      let d = p5.Vector.dist(this.pos, f.pos);
+      if (d < detectionRange && d < minDistanceFood) {
+        nearestFood = f;
+        minDistanceFood = d;
+      }
+    }
+
+    for (let c of cells) {
+      if (c !== this) {
+        let d = p5.Vector.dist(this.pos, c.pos);
+        if (d < detectionRange) {
+          if (this.mass > c.mass * 1.1 && d < minDistanceSmallerCell) {
+            nearestSmallerCell = c;
+            minDistanceSmallerCell = d;
+          } else if (c.mass > this.mass * 1.1 && d < minDistanceBiggerCell) {
+            nearestBiggerCell = c;
+            minDistanceBiggerCell = d;
+          }
+        }
+      }
+    }
+
+    if (nearestBiggerCell && minDistanceBiggerCell < this.r * 5) {
+      this.state = 'flee';
+      this.fleeTarget = nearestBiggerCell;
+    } else if (this.state === 'hunt' && nearestSmallerCell) {
+      this.targetPos = nearestSmallerCell.pos;
+      this.currentTarget = nearestSmallerCell;
+    } else if (nearestFood) {
+      this.targetPos = nearestFood.pos;
+      this.currentTarget = nearestFood;
+    } else {
+      this.targetPos = createVector(random(MAP_SIZE), random(MAP_SIZE));
+      this.currentTarget = null;
+    }
+  }
+
+  move() {
+    let targetVector;
+    if (this.state === 'flee' && this.fleeTarget) {
+      targetVector = p5.Vector.sub(this.pos, this.fleeTarget.pos);
+    } else if (this.targetPos) {
+      targetVector = p5.Vector.sub(this.targetPos, this.pos);
+    } else {
+      targetVector = p5.Vector.random2D();
+    }
+    
+    targetVector.setMag(CELL_SPEED);
+    this.vel.lerp(targetVector, 0.2);
+
+    let centerVector = p5.Vector.sub(createVector(MAP_SIZE / 2, MAP_SIZE / 2), this.pos);
+    let distanceToCenter = centerVector.mag();
+    let centerInfluence = map(distanceToCenter, 0, MAP_SIZE / 2, 0, 0.5);
+    centerVector.setMag(centerInfluence);
+    this.vel.add(centerVector);
+
+    this.vel.setMag(CELL_SPEED);
+  }
+
+  movePlayer() {
+    let mouseVector = createVector(mouseX - width / 2, mouseY - height / 2);
+    mouseVector.div(zoom);
+    let speed = mouseIsPressed && (mouseButton === RIGHT) ? CELL_SPEED * 2 : CELL_SPEED;
+    mouseVector.setMag(speed);
+    this.vel = mouseVector;
+  }
+
+  eats(other) {
+    if (other instanceof Food || other instanceof SpeedPowerup || other instanceof SizePowerup) {
+      let d = p5.Vector.dist(this.pos, other.pos);
+      if (d < this.r + other.r) {
+        if (other instanceof Food) {
+          this.mass += 1;
+          playBubbleSound(800, 0.05); // Higher pitch for food
+        } else if (other instanceof SpeedPowerup) {
+          this.activateSpeedBoost();
+          playBubbleSound(600, 0.2); // Medium pitch for speed powerup
+        } else if (other instanceof SizePowerup) {
+          this.activateSizeBoost();
+          playBubbleSound(400, 0.3); // Lower pitch for size powerup
+        }
+        return true;
+      }
+    } else if (other instanceof Cell) {
+      let d = p5.Vector.dist(this.pos, other.pos);
+      if (d < this.r && this.mass > other.mass * 1.1) {
+        playBubbleSound(200, 0.5, 'eat'); // Lower pitch and longer duration for eating cells
+        return true;
+      }
+    }
+    return false;
+  }
+
+  activateSpeedBoost() {
+    this.speedBoostEndTime = millis() + SPEED_BOOST_DURATION;
+  }
+
+  activateSizeBoost() {
+    this.sizeBoostEndTime = millis() + SIZE_BOOST_DURATION;
+    this.mass *= SIZE_BOOST_FACTOR;
+  }
+
+  show() {
+    push();
+    translate(this.pos.x, this.pos.y);
+    
+    switch (this.pattern) {
+      case 'stripes':
+        this.drawStripedFish();
+        break;
+      case 'dots':
+        this.drawDottedFish();
+        break;
+      case 'scales':
+        this.drawScaledFish();
+        break;
+      default:
+        this.drawSolidFish();
+    }
+
+    fill(this.color);
+    stroke(0);
+    strokeWeight(2);
+    fill(this.color);
+    triangle(this.r, 0, this.r + this.r/2, -this.r/3, this.r + this.r/2, this.r/3);
+
+    fill(255);
+    ellipse(0, -this.r/4, this.r/4);
+    fill(0);
+    ellipse(0, -this.r/4, this.r/8);
+
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(this.r * 0.4);
+    text(this.name, 0, this.r + 10);
+
+    if (this.isPlayer && showingEmoji && millis() < emojiDisplayTime) {
+      textSize(this.r * 0.8);
+      text(selectedEmoji, 0, -this.r - 20);
+    }
+
+    pop();
+  }
+
+  drawSolidFish() {
+    fill(this.color);
+    stroke(0);
+    strokeWeight(2);
+    ellipse(0, 0, this.r * 2);
+    triangle(this.r, 0, this.r + this.r/2, -this.r/3, this.r + this.r/2, this.r/3);
+  }
+
+  drawStripedFish() {
+    fill(this.color);
+    stroke(0);
+    strokeWeight(2);
+    ellipse(0, 0, this.r * 2);
+    for (let i = -this.r; i < this.r; i += 5) {
+      fill(255, 0, 0); // Example color for stripes
+      rect(i, -this.r, 5, this.r * 2);
+    }
+  }
+
+  drawDottedFish() {
+    fill(this.color);
+    stroke(0);
+    strokeWeight(2);
+    ellipse(0, 0, this.r * 2);
+    for (let i = -this.r; i < this.r; i += 10) {
+      fill(0, 0, 255); // Example color for dots
+      ellipse(i, random(-this.r, this.r), 5);
+    }
+  }
+
+  drawScaledFish() {
+    fill(this.color);
+    stroke(0);
+    strokeWeight(2);
+    ellipse(0, 0, this.r * 2);
+    for (let i = 0; i < this.r; i += 10) {
+      fill(0, 255, 0); // Example color for scales
+      arc(0, 0, this.r * 2 * (i / this.r), this.r * 2 * (i / this.r), 0, PI, CHORD);
+    }
+  }
+}
+
+class Food {
+  constructor(x, y) {
+    this.pos = createVector(x, y);
+    this.r = 5;
+    this.color = color(0, random(100, 255), random(200, 255));
+  }
+
+  show() {
+    fill(this.color);
+    noStroke();
+    ellipse(this.pos.x, this.pos.y, this.r * 2);
+  }
+}
+
+class SpeedPowerup {
+  constructor(x, y) {
+    this.pos = createVector(x, y);
+    this.r = 10;
+  }
+
+  show() {
+    fill(0, 255, 255);
+    noStroke();
+    star(this.pos.x, this.pos.y, this.r, this.r * 2, 5);
+  }
+}
+
+class SizePowerup {
+  constructor(x, y) {
+    this.pos = createVector(x, y);
+    this.r = 20;
+  }
+
+  show() {
+    fill(255, 0, 255);
+    noStroke();
+    star(this.pos.x, this.pos.y, this.r, this.r * 2, 8);
+  }
+}
+
+function star(x, y, radius1, radius2, npoints) {
+  let angle = TWO_PI / npoints;
+  let halfAngle = angle / 2.0;
+  beginShape();
+  for (let a = 0; a < TWO_PI; a += angle) {
+    let sx = x + cos(a) * radius2;
+    let sy = y + sin(a) * radius2;
+    vertex(sx, sy);
+    sx = x + cos(a + halfAngle) * radius1;
+    sy = y + sin(a + halfAngle) * radius1;
+    vertex(sx, sy);
+  }
+  endShape(CLOSE);
+}
+
+function updateLeaderboard() {
+  leaderboard = cells.sort((a, b) => b.mass - a.mass).slice(0, 10);
+  let leaderboardHTML = "";
+  leaderboard.forEach((cell, index) => {
+    leaderboardHTML += `<li>${cell.name}: ${floor(cell.mass)}</li>`;
+  });
+  document.getElementById('leaderboardList').innerHTML = leaderboardHTML;
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+
+document.addEventListener('DOMContentLoaded', (event) => {
+  document.querySelectorAll('.patternButton').forEach(button => {
+    button.addEventListener('click', function() {
+      selectPattern(this.getAttribute('data-pattern'));
+    });
+  });
+
+  document.getElementById('nameConfirmButton').addEventListener('click', function() {
+    confirmedName = document.getElementById('menuPlayerNameInput').value.trim();
+    if (confirmedName) {
+      alert(`Name confirmed: ${confirmedName}`);
+    } else {
+      alert('Please enter a name before confirming.');
+    }
+  });
+
+  document.getElementById('startGameButton').addEventListener('click', function() {
+    if (!confirmedName) {
+      confirmedName = document.getElementById('menuPlayerNameInput').value.trim();
+    }
+    gameStarted = true;
+    document.getElementById('menuScreen').style.display = 'none';
+    document.getElementById('gameCanvas').style.display = 'block';
+    spawnPlayer();
+  });
+});
+
+document.getElementById('playAgainButton').addEventListener('click', function() {
+  let playerName = document.getElementById('playerNameInput').value.trim();
+  if (playerName !== "") {
+    playerCell.name = playerName;
+  }
+  spawnPlayer();
+  gameOver = false;
+  document.getElementById('gameOverScreen').style.display = 'none';
+  gameStarted = true;
+  document.getElementById('gameCanvas').style.display = 'block';
+});
+
+function mouseWheel(event) {
+  zoomLevel = constrain(zoomLevel + event.delta * 0.001, 0.5, 2);
+  return false;
+}
+
+function mousePressed() {
+}
+
+function contextMenu(event) {
+  event.preventDefault();
+}
+
+document.addEventListener('contextmenu', contextMenu);
+
+function showEmojiOptions() {
+  const emojiOptions = document.getElementById('emojiOptions');
+  emojiOptions.style.display = 'block';
+  emojiOptions.innerHTML = '';
+  FISH_EMOJIS.forEach(emoji => {
+    const button = document.createElement('button');
+    button.textContent = emoji;
+    button.style.fontSize = '24px';
+    button.style.margin = '0 5px';
+    button.style.cursor = 'pointer';
+    button.onclick = () => selectEmoji(emoji);
+    emojiOptions.appendChild(button);
+  });
+}
+
+function hideEmojiOptions() {
+  document.getElementById('emojiOptions').style.display = 'none';
+}
+
+function selectEmoji(emoji) {
+  selectedEmoji = emoji;
+  showingEmoji = true;
+  emojiDisplayTime = millis() + 5000;
+  hideEmojiOptions();
+}
+
+function keyPressed() {
+  if (key === 'e' || key === 'E') {
+    showEmojiOptions();
+  } else if (key === '+' || key === '=') {
+    let currentVolume = masterGainNode.gain.value;
+    masterGainNode.gain.setValueAtTime(Math.min(currentVolume + 0.1, 1), audioContext.currentTime);
+  } else if (key === '-' || key === '_') {
+    let currentVolume = masterGainNode.gain.value;
+    masterGainNode.gain.setValueAtTime(Math.max(currentVolume - 0.1, 0), audioContext.currentTime);
+  }
+}
+
+function selectPattern(pattern) {
+  selectedPattern = pattern;
+  document.querySelectorAll('.patternButton').forEach(button => {
+    button.classList.remove('selected');
+  });
+  document.querySelector(`.patternButton[data-pattern="${pattern}"]`).classList.add('selected');
+}
+</script>
+</body></html>
